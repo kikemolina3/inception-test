@@ -64,13 +64,40 @@ fi
 # Platform-specific helpers
 # -------------------------------------------------------
 
+ensure_brew() {
+    if ! command -v brew &> /dev/null; then
+        echo -e "${RED}Homebrew is not installed. Install it from https://brew.sh${RESET}"
+        exit 1
+    fi
+}
+
+install_docker() {
+    echo -e "${BLUE}Installing Docker...${RESET}"
+    if [[ "$TARGET_OS" == "macos" ]]; then
+        ensure_brew
+        brew install --cask docker || true
+        echo -e "${YELLOW}Docker Desktop installed. Please open it and start the engine before re-running this script.${RESET}"
+        open -a Docker 2>/dev/null || true
+        exit 0
+    else
+        sudo apt-get update -qq
+        sudo apt-get install -y -qq ca-certificates curl gnupg
+        sudo install -m 0755 -d /etc/apt/keyrings
+        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg 2>/dev/null || true
+        sudo chmod a+r /etc/apt/keyrings/docker.gpg
+        echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | \
+            sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+        sudo apt-get update -qq
+        sudo apt-get install -y -qq docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+        sudo systemctl start docker
+        sudo systemctl enable docker
+    fi
+}
+
 install_python() {
     echo -e "${BLUE}Installing Python 3.10...${RESET}"
     if [[ "$TARGET_OS" == "macos" ]]; then
-        if ! command -v brew &> /dev/null; then
-            echo -e "${RED}Homebrew is not installed. Install it from https://brew.sh${RESET}"
-            exit 1
-        fi
+        ensure_brew
         brew install python@3.10 || brew upgrade python@3.10 || true
         brew link python@3.10 --overwrite --force 2>/dev/null || true
     else
@@ -85,9 +112,10 @@ install_python() {
 install_mc() {
     echo -e "${BLUE}Installing MinIO client (mc)...${RESET}"
     if [[ "$TARGET_OS" == "macos" ]]; then
+        ensure_brew
         brew install minio/stable/mc 2>/dev/null || brew upgrade minio/stable/mc || true
     else
-        sudo curl -sfL https://dl.min.io/client/mc/release/linux-amd64/mc -o /usr/local/bin/mc && \
+        sudo curl -sfL https://dl.min.io/client/mc/release/linux-amd64/mc -o /usr/local/bin/mc
         sudo chmod +x /usr/local/bin/mc
     fi
 }
@@ -95,10 +123,11 @@ install_mc() {
 install_minikube() {
     echo -e "${BLUE}Installing Minikube...${RESET}"
     if [[ "$TARGET_OS" == "macos" ]]; then
+        ensure_brew
         brew install minikube 2>/dev/null || brew upgrade minikube || true
     else
-        curl -sLO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64 && \
-        sudo install minikube-linux-amd64 /usr/local/bin/minikube && \
+        curl -sLO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
+        sudo install minikube-linux-amd64 /usr/local/bin/minikube
         rm -f minikube-linux-amd64
     fi
 }
@@ -153,15 +182,10 @@ fi
 echo -e "${BLUE}--------------------------------------------------------------------${RESET}"
 
 # -------------------------------------------------------
-# Docker check
+# Docker
 # -------------------------------------------------------
 if ! command -v docker &> /dev/null; then
-    if [[ "$TARGET_OS" == "macos" ]]; then
-        echo -e "${RED}Docker is not installed. Install Docker Desktop from https://www.docker.com/products/docker-desktop/${RESET}"
-    else
-        echo -e "${RED}Docker is not installed. This script requires Docker to run.${RESET}"
-    fi
-    exit 1
+    install_docker
 fi
 
 # -------------------------------------------------------
