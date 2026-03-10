@@ -14,21 +14,19 @@ The script auto-detects whether you're on macOS or Linux and runs the appropriat
 
 | Flag | Required | Default | Description |
 |---|---|---|---|
-| `--gitlab-user` | Yes* | — | GitLab username for datasets repo |
-| `--gitlab-password` | Yes* | — | GitLab password for datasets repo |
+| `--gitlab-user` | Yes | — | GitLab username for cloning the pipeline repo |
+| `--gitlab-password` | Yes | — | GitLab password for cloning the pipeline repo |
 | `--minio-id` | No | `1` | MinIO instance for Lithops (`1` or `2`) |
-| `--skip-datasets` | No | — | Skip dataset clone/upload (for CI) |
-
-\* Not required when `--skip-datasets` is used.
 
 ## What it does
 
-1. Starts two **MinIO** Docker instances (`minio1`, `minio2`)
-2. Installs the **MinIO client** (`mc`) and creates buckets
-3. Clones datasets from GitLab and uploads to MinIO (unless `--skip-datasets`)
-4. Installs and starts **Minikube** (Kubernetes-in-Docker)
-5. Generates the **Lithops** config (`~/.lithops/config`)
-6. Installs **Python 3.10**, creates a venv, and installs the project
+1. Clones the **pipeline** repository from GitLab
+2. Starts two **MinIO** Docker instances (`minio1`, `minio2`)
+3. Installs the **MinIO client** (`mc`) and creates buckets
+4. Uploads datasets to MinIO
+5. Installs and starts **Minikube** (Kubernetes-in-Docker)
+6. Generates the **Lithops** config (`~/.lithops/config`)
+7. Installs **Python 3.10**, creates a venv, and installs the project via `pip install -e`
 
 ## Prerequisites
 
@@ -45,4 +43,6 @@ docker run --privileged --cgroupns=host -v /sys/fs/cgroup:/sys/fs/cgroup:rw \
 
 ## CI
 
-The GitHub Action (`.github/workflows/macos-test.yml`) runs on `macos-latest` with `--skip-datasets` to validate the full setup without GitLab credentials.
+GitHub Actions run the full inception.sh on both platforms using repository secrets (`GITLAB_USER`, `GITLAB_PASSWORD`):
+- **macOS** (`.github/workflows/macos-test.yml`): `macos-15-intel` + Docker via Colima
+- **Ubuntu** (`.github/workflows/ubuntu-test.yml`): `ubuntu-22.04` with native Docker

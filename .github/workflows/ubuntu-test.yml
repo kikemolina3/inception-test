@@ -19,7 +19,7 @@ jobs:
       - name: Run inception.sh
         run: |
           chmod +x install/inception.sh
-          bash install/inception.sh --skip-datasets
+          bash install/inception.sh --gitlab-user "${{ secrets.GITLAB_USER }}" --gitlab-password "${{ secrets.GITLAB_PASSWORD }}"
 
       - name: Verify MinIO containers
         run: |

@@ -28,8 +28,6 @@ case "$(uname -s)" in
         ;;
 esac
 
-SKIP_DATASETS=false
-
 # -------------------------------------------------------
 # Argument parsing
 # -------------------------------------------------------
@@ -38,21 +36,22 @@ while [[ "$#" -gt 0 ]]; do
         --gitlab-user) GITLAB_USER="$2"; shift ;;
         --gitlab-password) GITLAB_PASSWORD="$2"; shift ;;
         --minio-id) MINIO_ID="$2"; shift ;;
-        --skip-datasets) SKIP_DATASETS=true ;;
         *) echo "Unknown parameter passed: $1"; exit 1 ;;
     esac
     shift
 done
 
-if [[ "$SKIP_DATASETS" == false && ( -z "$GITLAB_USER" || -z "$GITLAB_PASSWORD" ) ]]; then
-    echo "Usage: $0 --gitlab-user <user> --gitlab-password <password> [--minio-id <1|2>] [--skip-datasets]"
+if [[ -z "$GITLAB_USER" || -z "$GITLAB_PASSWORD" ]]; then
+    echo "Usage: $0 --gitlab-user <user> --gitlab-password <password> [--minio-id <1|2>]"
     echo ""
-    echo "  --gitlab-user       GitLab username for cloning the datasets repository."
-    echo "  --gitlab-password   GitLab password for cloning the datasets repository."
+    echo "  --gitlab-user       GitLab username (required for cloning the pipeline repository)."
+    echo "  --gitlab-password   GitLab password (required for cloning the pipeline repository)."
     echo "  --minio-id          (Optional) MinIO instance to use (1 or 2, default: 1)."
-    echo "  --skip-datasets     (Optional) Skip dataset clone and upload (for CI testing)."
     exit 1
 fi
+
+PIPELINE_REPO="https://${GITLAB_USER}:${GITLAB_PASSWORD}@gitlab.bsc.es/extract/extract-use-cases/taska/use-case-c/pipeline.git"
+PIPELINE_DIR="${HOME}/pipeline"
 
 if [[ -n "$MINIO_ID" ]]; then
     MINIO_URL=${MINIO_URLS[$((MINIO_ID - 1))]}
@@ -170,11 +169,7 @@ echo -e "${BLUE}Taska Use Case C — Local Environment Setup (${TARGET_OS})${RES
 echo -e "${BLUE}1. Creating 2 MinIO instances.${RESET}"
 echo -e "${BLUE}2. Creating a Minikube Kubernetes-in-Docker cluster.${RESET}"
 echo -e "${BLUE}3. Automatically configure the Lithops config file.${RESET}"
-if [[ "$SKIP_DATASETS" == false ]]; then
-    echo -e "${BLUE}4. Uploading data to the MinIO instances.${RESET}"
-else
-    echo -e "${YELLOW}4. Skipping dataset upload (--skip-datasets).${RESET}"
-fi
+echo -e "${BLUE}4. Uploading data to the MinIO instances.${RESET}"
 echo -e "${BLUE}--------------------------------------------------------------------${RESET}"
 
 # -------------------------------------------------------
@@ -232,28 +227,23 @@ if ! mc ls minio2/${BUCKET} &> /dev/null; then
 fi
 
 # -------------------------------------------------------
-# Dataset upload (skip in CI)
+# Clone pipeline repo
 # -------------------------------------------------------
-if [[ "$SKIP_DATASETS" == false ]]; then
-    echo -e "${BLUE}Pushing datasets to MinIO instances...${RESET}"
-    rm -rf /tmp/datasets
-    mkdir -p /tmp/datasets
-    pushd /tmp/datasets
-    git clone --filter=blob:none --no-checkout "https://${GITLAB_USER}:${GITLAB_PASSWORD}@gitlab.bsc.es/extract/extract-use-cases/taska/use-case-c/pipeline.git"
-    pushd pipeline
-    git sparse-checkout init --cone
-    git sparse-checkout set datasets
-    git checkout
-
-    mc cp -r /tmp/datasets/pipeline/datasets/ minio1/${BUCKET}/ > /dev/null
-    mc cp -r /tmp/datasets/pipeline/datasets/ minio2/${BUCKET}/ > /dev/null
-
-    popd
-    popd
-    rm -rf /tmp/datasets
+echo -e "${BLUE}Cloning pipeline repository...${RESET}"
+if [[ -d "${PIPELINE_DIR}/.git" ]]; then
+    echo -e "${YELLOW}Pipeline repo already exists at ${PIPELINE_DIR}, pulling latest...${RESET}"
+    git -C "${PIPELINE_DIR}" pull --ff-only || true
 else
-    echo -e "${YELLOW}Skipping dataset clone & upload.${RESET}"
+    rm -rf "${PIPELINE_DIR}"
+    git clone "${PIPELINE_REPO}" "${PIPELINE_DIR}"
 fi
+
+# -------------------------------------------------------
+# Dataset upload
+# -------------------------------------------------------
+echo -e "${BLUE}Pushing datasets to MinIO instances...${RESET}"
+mc cp -r "${PIPELINE_DIR}/datasets/" minio1/${BUCKET}/ > /dev/null
+mc cp -r "${PIPELINE_DIR}/datasets/" minio2/${BUCKET}/ > /dev/null
 
 # -------------------------------------------------------
 # Minikube
@@ -294,9 +284,9 @@ k8s:
   docker_server: registry.gitlab.bsc.es
   runtime_timeout: 18000
   runtime: registry.gitlab.bsc.es/extract/extract-use-cases/taska/use-case-c/pipeline:310
-  docker_user: ${GITLAB_USER:-ci}
+  docker_user: ${GITLAB_USER}
   namespace: taska-c
-  docker_password: ${GITLAB_PASSWORD:-ci}
+  docker_password: ${GITLAB_PASSWORD}
 LITHOPS_EOF
 
 # -------------------------------------------------------
@@ -310,12 +300,10 @@ if ! command -v "$PYTHON_BIN" &> /dev/null; then
     PYTHON_BIN="$(get_python_bin)"
 fi
 
-# On macOS, ensure venv module is available (brew python ships it)
-# On Ubuntu, python3.10-venv was installed by install_python
 "$PYTHON_BIN" -m venv "${SCRIPT_DIR}/.venv"
 source "${SCRIPT_DIR}/.venv/bin/activate"
 pip install --upgrade pip
-pip install -e "${SCRIPT_DIR}/.."
+pip install -e "${PIPELINE_DIR}"
 
 echo -e "${GREEN}--------------------------------------------------------------------${RESET}"
 echo -e "${GREEN}Setup completed successfully!${RESET}"
