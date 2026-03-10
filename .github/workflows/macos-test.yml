@@ -18,7 +18,7 @@ jobs:
 
       - name: Install Docker via Colima (QEMU)
         run: |
-          brew install docker docker-compose colima
+          brew install docker docker-compose qemu colima
           # Use QEMU instead of VZ to avoid HVF issues on CI
           colima start --cpu 2 --memory 4 --disk 20 --vm-type=qemu --arch aarch64
           # Wait for Docker
