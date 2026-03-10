@@ -134,11 +134,7 @@ install_minikube() {
 
 get_minio_volume_path() {
     local instance=$1
-    if [[ "$TARGET_OS" == "macos" ]]; then
-        echo "${HOME}/minio-data/minio${instance}"
-    else
-        echo "/mnt/minio${instance}"
-    fi
+    echo "${HOME}/minio-data/minio${instance}"
 }
 
 update_hosts_file() {

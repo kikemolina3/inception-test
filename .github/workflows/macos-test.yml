@@ -18,6 +18,9 @@ jobs:
 
       - name: Setup Docker on macOS
         uses: douglascamata/setup-docker-macos-action@v1.0.1
+        with:
+          lima: v1.2.1
+          colima: v0.9.1
 
       - name: Verify Docker
         run: docker info
