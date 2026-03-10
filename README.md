@@ -33,12 +33,10 @@ The script auto-detects whether you're on macOS or Linux and runs the appropriat
 - **macOS**: [Docker Desktop](https://www.docker.com/products/docker-desktop/) + [Homebrew](https://brew.sh)
 - **Ubuntu 22.04**: Docker installed and running
 
-## Testing in Docker (Ubuntu DinD)
+## Testing
 
 ```bash
-docker build -t inception-test .
-docker run --privileged --cgroupns=host -v /sys/fs/cgroup:/sys/fs/cgroup:rw \
-  inception-test --gitlab-user <user> --gitlab-password <password>
+./inception.sh --gitlab-user <user> --gitlab-password <password>
 ```
 
 ## CI
