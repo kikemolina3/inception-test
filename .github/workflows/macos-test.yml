@@ -1,0 +1,72 @@
+name: Test inception.sh on macOS
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  macos-test:
+    runs-on: macos-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Docker via Colima
+        run: |
+          brew install docker colima
+          colima start --cpu 2 --memory 4 --disk 20
+          # Wait for Docker to be ready
+          for i in $(seq 1 30); do
+            docker info &>/dev/null && break
+            sleep 2
+          done
+          docker info
+
+      - name: Run inception.sh (macOS, skip-datasets)
+        run: |
+          chmod +x install/inception.sh
+          bash install/inception.sh \
+            --os macos \
+            --skip-datasets \
+            --gitlab-user ci \
+            --gitlab-password ci
+
+      - name: Verify MinIO containers
+        run: |
+          docker ps | grep minio1
+          docker ps | grep minio2
+          curl -sf http://localhost:9000/minio/health/live
+
+      - name: Verify MinIO buckets
+        run: |
+          mc alias set minio1 http://localhost:9000 minioadmin minioadmin
+          mc ls minio1/astronomics-test
+
+      - name: Verify Minikube
+        run: |
+          minikube status
+
+      - name: Verify Lithops config
+        run: |
+          cat ~/.lithops/config
+          grep "backend: k8s" ~/.lithops/config
+          grep "storage: minio" ~/.lithops/config
+
+      - name: Verify Python venv
+        run: |
+          source install/.venv/bin/activate
+          python --version
+          pip list
+
+      - name: Cleanup
+        if: always()
+        run: |
+          minikube delete || true
+          docker stop minio1 minio2 2>/dev/null || true
+          docker rm minio1 minio2 2>/dev/null || true
+          colima stop || true

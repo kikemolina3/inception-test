@@ -1,0 +1,10 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[project]
+name = "inception-test"
+version = "0.1.0"
+description = "Minimal stub for testing inception.sh pip install"
+requires-python = ">=3.10"
+dependencies = []
