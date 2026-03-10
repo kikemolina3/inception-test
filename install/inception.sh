@@ -296,12 +296,9 @@ LITHOPS_EOF
 # Python 3.10 + venv
 # -------------------------------------------------------
 echo -e "${BLUE}Installing Python 3.10 & project dependencies...${RESET}"
+install_python
 PYTHON_BIN="$(get_python_bin)"
-
-if ! command -v "$PYTHON_BIN" &> /dev/null; then
-    install_python
-    PYTHON_BIN="$(get_python_bin)"
-fi
+echo -e "${BLUE}Using Python: ${PYTHON_BIN} ($("$PYTHON_BIN" --version 2>&1))${RESET}"
 
 # -------------------------------------------------------
 # uv (fast Python package manager)
@@ -313,7 +310,8 @@ if ! command -v uv &> /dev/null; then
 fi
 
 cd "${PIPELINE_DIR}"
-uv sync --python "$PYTHON_BIN"
+uv python pin "$PYTHON_BIN"
+uv sync
 
 echo -e "${GREEN}--------------------------------------------------------------------${RESET}"
 echo -e "${GREEN}Setup completed successfully!${RESET}"
