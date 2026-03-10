@@ -16,16 +16,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install Docker via Colima
-        run: |
-          brew install docker colima
-          colima start --cpu 2 --memory 4 --disk 20
-          # Wait for Docker to be ready
-          for i in $(seq 1 30); do
-            docker info &>/dev/null && break
-            sleep 2
-          done
-          docker info
+      - name: Set up Docker
+        uses: docker/setup-docker-action@v4
 
       - name: Run inception.sh (macOS, skip-datasets)
         run: |
@@ -69,4 +61,3 @@ jobs:
           minikube delete || true
           docker stop minio1 minio2 2>/dev/null || true
           docker rm minio1 minio2 2>/dev/null || true
-          colima stop || true
