@@ -52,19 +52,19 @@ jobs:
 
       - name: Verify Python venv
         run: |
-          source install/.venv/bin/activate
+          source "${HOME}/pipeline/.venv/bin/activate"
           python --version
           pip list
 
       - name: Verify Lithops end-to-end
         run: |
-          source install/.venv/bin/activate
+          source "${HOME}/pipeline/.venv/bin/activate"
           lithops hello
 
       - name: Run hello pipeline
         run: |
           cd "${HOME}/pipeline"
-          source "${GITHUB_WORKSPACE}/install/.venv/bin/activate"
+          source .venv/bin/activate
           uv run taskac run configs/workflows/classic.yaml
 
       - name: Cleanup

@@ -300,13 +300,20 @@ if ! command -v "$PYTHON_BIN" &> /dev/null; then
     PYTHON_BIN="$(get_python_bin)"
 fi
 
-"$PYTHON_BIN" -m venv "${SCRIPT_DIR}/.venv"
-source "${SCRIPT_DIR}/.venv/bin/activate"
-pip install --upgrade pip
-pip install -e "${PIPELINE_DIR}"
+# -------------------------------------------------------
+# uv (fast Python package manager)
+# -------------------------------------------------------
+if ! command -v uv &> /dev/null; then
+    echo -e "${BLUE}Installing uv...${RESET}"
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+    export PATH="${HOME}/.local/bin:${PATH}"
+fi
+
+cd "${PIPELINE_DIR}"
+uv sync --python "$PYTHON_BIN"
 
 echo -e "${GREEN}--------------------------------------------------------------------${RESET}"
 echo -e "${GREEN}Setup completed successfully!${RESET}"
-echo -e "${GREEN}Activate the virtualenv: source ${SCRIPT_DIR}/.venv/bin/activate${RESET}"
+echo -e "${GREEN}Activate the virtualenv: source ${PIPELINE_DIR}/.venv/bin/activate${RESET}"
 echo -e "${GREEN}Test the setup: lithops hello${RESET}"
 echo -e "${GREEN}--------------------------------------------------------------------${RESET}"
