@@ -34,11 +34,11 @@ jobs:
         run: |
           docker ps | grep minio1
           docker ps | grep minio2
-          curl -sf http://localhost:9000/minio/health/live
+          curl -sf http://127.0.0.1:9000/minio/health/live
 
       - name: Verify MinIO buckets
         run: |
-          mc alias set minio1 http://localhost:9000 minioadmin minioadmin
+          mc alias set minio1 http://127.0.0.1:9000 minioadmin minioadmin
           mc ls minio1/astronomics-test
 
       - name: Verify Minikube

@@ -205,7 +205,10 @@ docker run -d \
   minio/minio server /data --address ":9100" --console-address ":9101"
 
 echo -e "${BLUE}Waiting for MinIO to be ready...${RESET}"
-until curl -s http://localhost:9000/minio/health/live > /dev/null; do
+until curl -s http://127.0.0.1:9000/minio/health/live > /dev/null; do
+    sleep 2
+done
+until curl -s http://127.0.0.1:9100/minio/health/live > /dev/null; do
     sleep 2
 done
 echo -e "${GREEN}MinIO is ready.${RESET}"
@@ -217,8 +220,8 @@ if ! command -v mc &> /dev/null; then
     install_mc
 fi
 
-mc alias set minio1 http://localhost:9000 minioadmin minioadmin > /dev/null
-mc alias set minio2 http://localhost:9100 minioadmin minioadmin > /dev/null
+mc alias set minio1 http://127.0.0.1:9000 minioadmin minioadmin > /dev/null
+mc alias set minio2 http://127.0.0.1:9100 minioadmin minioadmin > /dev/null
 if ! mc ls minio1/${BUCKET} &> /dev/null; then
     mc mb minio1/${BUCKET}
 fi
