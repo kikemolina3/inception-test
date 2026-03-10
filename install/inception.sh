@@ -17,9 +17,17 @@ MINIO_URLS=(
 )
 
 # -------------------------------------------------------
-# Defaults
+# Auto-detect OS
 # -------------------------------------------------------
-TARGET_OS="macos"
+case "$(uname -s)" in
+    Darwin) TARGET_OS="macos" ;;
+    Linux)  TARGET_OS="ubuntu" ;;
+    *)
+        echo -e "${RED}Unsupported OS: $(uname -s). Only macOS and Ubuntu are supported.${RESET}"
+        exit 1
+        ;;
+esac
+
 SKIP_DATASETS=false
 
 # -------------------------------------------------------
@@ -30,7 +38,6 @@ while [[ "$#" -gt 0 ]]; do
         --gitlab-user) GITLAB_USER="$2"; shift ;;
         --gitlab-password) GITLAB_PASSWORD="$2"; shift ;;
         --minio-id) MINIO_ID="$2"; shift ;;
-        --os) TARGET_OS="$2"; shift ;;
         --skip-datasets) SKIP_DATASETS=true ;;
         *) echo "Unknown parameter passed: $1"; exit 1 ;;
     esac
@@ -38,18 +45,12 @@ while [[ "$#" -gt 0 ]]; do
 done
 
 if [[ "$SKIP_DATASETS" == false && ( -z "$GITLAB_USER" || -z "$GITLAB_PASSWORD" ) ]]; then
-    echo "Usage: $0 --gitlab-user <user> --gitlab-password <password> [--minio-id <1|2>] [--os <macos|ubuntu>] [--skip-datasets]"
+    echo "Usage: $0 --gitlab-user <user> --gitlab-password <password> [--minio-id <1|2>] [--skip-datasets]"
     echo ""
     echo "  --gitlab-user       GitLab username for cloning the datasets repository."
     echo "  --gitlab-password   GitLab password for cloning the datasets repository."
     echo "  --minio-id          (Optional) MinIO instance to use (1 or 2, default: 1)."
-    echo "  --os                (Optional) Target OS: macos (default) or ubuntu."
     echo "  --skip-datasets     (Optional) Skip dataset clone and upload (for CI testing)."
-    exit 1
-fi
-
-if [[ "$TARGET_OS" != "macos" && "$TARGET_OS" != "ubuntu" ]]; then
-    echo -e "${RED}Invalid --os value: ${TARGET_OS}. Must be 'macos' or 'ubuntu'.${RESET}"
     exit 1
 fi
 

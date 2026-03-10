@@ -23,10 +23,6 @@ jobs:
           if bash install/inception.sh 2>&1; then
             echo "Should have failed" && exit 1
           fi
-          # Should fail with invalid --os
-          if bash install/inception.sh --os windows --skip-datasets 2>&1; then
-            echo "Should have rejected invalid OS" && exit 1
-          fi
 
       - name: Install Python 3.10 via Homebrew
         run: |

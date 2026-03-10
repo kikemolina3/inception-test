@@ -1,18 +1,14 @@
 # inception-test
 
-One-stop setup script for the **Taska Use Case C** astronomy pipeline. Installs and configures MinIO, Minikube, Lithops, and Python — designed for astronomers on **macOS** (default) or Ubuntu.
+One-stop setup script for the **Taska Use Case C** astronomy pipeline. Installs and configures MinIO, Minikube, Lithops, and Python — designed for astronomers on **macOS** or **Ubuntu** (auto-detected).
 
-## Quick start (macOS)
+## Quick start
 
 ```bash
 ./install/inception.sh --gitlab-user <user> --gitlab-password <password>
 ```
 
-## Quick start (Ubuntu)
-
-```bash
-./install/inception.sh --os ubuntu --gitlab-user <user> --gitlab-password <password>
-```
+The script auto-detects whether you're on macOS or Linux and runs the appropriate logic.
 
 ## Flags
 
@@ -20,7 +16,6 @@ One-stop setup script for the **Taska Use Case C** astronomy pipeline. Installs 
 |---|---|---|---|
 | `--gitlab-user` | Yes* | — | GitLab username for datasets repo |
 | `--gitlab-password` | Yes* | — | GitLab password for datasets repo |
-| `--os` | No | `macos` | Target OS: `macos` or `ubuntu` |
 | `--minio-id` | No | `1` | MinIO instance for Lithops (`1` or `2`) |
 | `--skip-datasets` | No | — | Skip dataset clone/upload (for CI) |
 

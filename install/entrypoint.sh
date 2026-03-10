@@ -11,4 +11,4 @@ for i in $(seq 1 30); do
 done
 
 cd /workspace/install
-exec bash inception.sh --os ubuntu "$@"
+exec bash inception.sh "$@"
