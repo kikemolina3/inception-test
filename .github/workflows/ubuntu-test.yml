@@ -16,107 +16,40 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Test argument parsing
+      - name: Run inception.sh
         run: |
           chmod +x install/inception.sh
-          # Should fail with usage message when no args
-          if bash install/inception.sh 2>&1; then
-            echo "Should have failed" && exit 1
-          fi
+          bash install/inception.sh --skip-datasets
 
-      - name: Install Python 3.10 via deadsnakes
+      - name: Verify MinIO containers
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq software-properties-common
-          sudo add-apt-repository -y ppa:deadsnakes/ppa
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq python3.10 python3.10-venv
-          python3.10 --version
+          docker ps | grep minio1
+          docker ps | grep minio2
+          curl -sf http://localhost:9000/minio/health/live
 
-      - name: Install mc
-        run: |
-          sudo curl -sfL https://dl.min.io/client/mc/release/linux-amd64/mc -o /usr/local/bin/mc
-          sudo chmod +x /usr/local/bin/mc
-          mc --version
-
-      - name: Install minikube
-        run: |
-          curl -sLO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
-          sudo install minikube-linux-amd64 /usr/local/bin/minikube
-          rm -f minikube-linux-amd64
-          minikube version
-
-      - name: Test venv creation and pip install
-        run: |
-          python3.10 -m venv install/.venv
-          source install/.venv/bin/activate
-          pip install --upgrade pip
-          pip install -e .
-          python --version
-          pip list
-
-      - name: Start MinIO containers
-        run: |
-          docker run -d --name minio1 \
-            -p 9000:9000 -p 9001:9001 \
-            minio/minio server /data --console-address ":9001"
-          docker run -d --name minio2 \
-            -p 9100:9100 -p 9101:9101 \
-            minio/minio server /data --address ":9100" --console-address ":9101"
-          echo "Waiting for MinIO..."
-          until curl -sf http://localhost:9000/minio/health/live > /dev/null; do sleep 2; done
-          until curl -sf http://localhost:9100/minio/health/live > /dev/null; do sleep 2; done
-          echo "✅ Both MinIO instances healthy"
-
-      - name: Test mc alias and bucket creation
+      - name: Verify MinIO buckets
         run: |
           mc alias set minio1 http://localhost:9000 minioadmin minioadmin
-          mc alias set minio2 http://localhost:9100 minioadmin minioadmin
-          mc mb minio1/astronomics-test
-          mc mb minio2/astronomics-test
           mc ls minio1/astronomics-test
-          mc ls minio2/astronomics-test
-          echo "✅ Buckets created"
 
-      - name: Test Lithops config generation
+      - name: Verify Minikube
+        run: minikube status
+
+      - name: Verify Lithops config
         run: |
-          mkdir -p ~/.lithops
-          MINIO_URL="http://minio1:9000"
-          GITLAB_USER="ci"
-          GITLAB_PASSWORD="ci"
-          cat > ~/.lithops/config << LITHOPS_EOF
-          lithops:
-            backend: k8s
-            storage: minio
-            monitoring_interval: 1
-          minio:
-            bucket_name: flexecutor-demo
-            endpoint: ${MINIO_URL}
-            access_key_id: minioadmin
-            secret_access_key: minioadmin
-          k8s:
-            docker_server: registry.gitlab.bsc.es
-            runtime_timeout: 18000
-            docker_user: ${GITLAB_USER}
-            namespace: taska-c
-            docker_password: ${GITLAB_PASSWORD}
-          LITHOPS_EOF
           cat ~/.lithops/config
           grep "backend: k8s" ~/.lithops/config
           grep "storage: minio" ~/.lithops/config
 
-      - name: Test Lithops config backup logic
+      - name: Verify Python venv
         run: |
-          bash -c '
-            if [ -e ~/.lithops/config ] && [ ! -e ~/.lithops/config.inception.bak ]; then
-              mv ~/.lithops/config ~/.lithops/config.inception.bak
-            fi
-          '
-          test -f ~/.lithops/config.inception.bak
-          echo "✅ Backup logic works"
+          source install/.venv/bin/activate
+          python --version
+          pip list
 
       - name: Cleanup
         if: always()
         run: |
+          minikube delete 2>/dev/null || true
           docker stop minio1 minio2 2>/dev/null || true
           docker rm minio1 minio2 2>/dev/null || true
