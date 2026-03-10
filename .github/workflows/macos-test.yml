@@ -61,6 +61,12 @@ jobs:
           source install/.venv/bin/activate
           lithops hello
 
+      - name: Run hello pipeline
+        run: |
+          cd "${HOME}/pipeline"
+          source "${GITHUB_WORKSPACE}/install/.venv/bin/activate"
+          uv run taskac run configs/workflows/classic.yaml
+
       - name: Cleanup
         if: always()
         run: |
