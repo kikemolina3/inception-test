@@ -44,3 +44,5 @@ The script auto-detects whether you're on macOS or Linux and runs the appropriat
 GitHub Actions run the full inception.sh on both platforms using repository secrets (`GITLAB_USER`, `GITLAB_PASSWORD`):
 - **macOS** (`.github/workflows/macos-test.yml`): `macos-15-intel` + Docker via Colima
 - **Ubuntu** (`.github/workflows/ubuntu-test.yml`): `ubuntu-22.04` with native Docker
+
+
